@@ -28,18 +28,31 @@ class MeetingCandidate(db.Model):
     date_time_start = db.Column(db.String(16), nullable=False)
     duration = db.Column(db.Integer, nullable=False)
 
+# データベースモデルの修正
 class CustomerLink(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     deal_id = db.Column(db.String(36), nullable=False, unique=True)
     company_name = db.Column(db.String(100), nullable=False)
     contact_name = db.Column(db.String(100), nullable=False)
     sales_rep_name = db.Column(db.String(100), nullable=False)
+    department = db.Column(db.String(100), nullable=True)  # 部署名を追加
+    role_name = db.Column(db.String(100), nullable=True)    # 役職を追加
     industry = db.Column(db.String(50), nullable=False)
     revenue = db.Column(db.String(50), nullable=False)
     meeting_type = db.Column(db.String(50), nullable=False)
     link = db.Column(db.String(255), nullable=False, unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
+
+# マイグレーションを適用
+def upgrade_database():
+    with app.app_context():
+        # 部署名と役職を追加
+        if not hasattr(CustomerLink, 'department'):
+            db.session.execute('ALTER TABLE customer_link ADD COLUMN department TEXT;')
+        if not hasattr(CustomerLink, 'position'):
+            db.session.execute('ALTER TABLE customer_link ADD COLUMN position TEXT;')
+        db.session.commit()
 
 class SurveyItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -117,7 +130,8 @@ def register_deal():
     # 正しいレスポンスを返す
     return jsonify({
         'message': 'Deal registered successfully',
-        'link': unique_link
+        'link': unique_link,
+        'data':data
     })
 
 # お客様画面エンドポイント
@@ -136,8 +150,11 @@ def select_date(deal_id):
     return jsonify({
         'meeting_method': customer_link.meeting_type,
         'duration': f"{candidates[0].duration}分" if candidates else "不明",
-        'candidates': candidate_list
+        'candidates': candidate_list,
+        'industry':customer_link.industry,
+        'revenue':customer_link.revenue
     })
+
 
 #選択日時の保存
 @app.route('/customer/confirm_date', methods=['POST'])
@@ -164,21 +181,30 @@ def confirm_date():
 def get_survey_items():
     industry = request.args.get('industry')
     revenue = request.args.get('revenue')
+    print(industry,revenue)
 
     if not industry or not revenue:
         return jsonify({'error': 'Industry and revenue are required'}), 400
+    columns = SurveyItem.__table__.columns
+    print(columns)
 
+# デバッグ: データベース内の全レコードを表示
+    print("\nAll records in database:") 
+    all_items = SurveyItem.query.all() 
+    for item in all_items: 
+        print(f"Industry: '{item.industry}', Revenue: '{item.revenue}'")
+    
     # データベースから業種と売上に基づく設問を取得
-    survey_items = SurveyItem.query.filter_by(industry=industry, revenue=revenue).all()
+    survey_items = SurveyItem.query.filter_by(industry=industry,revenue=revenue).all()
     if not survey_items:
         return jsonify({'error': 'No survey items found for the given criteria'}), 404
 
     # 設問をリスト形式で返す
     items = [{'id': item.id, 'question': item.question} for item in survey_items]
+    print(items)
     return jsonify(items)
 
 
-# 管理画面エンドポイント
 @app.route('/admin/manage_deals', methods=['GET'])
 def manage_deals():
     customer_links = CustomerLink.query.all()
@@ -187,23 +213,24 @@ def manage_deals():
         response = CustomerResponse.query.filter_by(deal_id=link.deal_id).first()
         confirmed_date = response.selected_date_time if response and response.selected_date_time else "未定"
         survey1_selected = response.survey1_selected_items if response and response.survey1_selected_items else "未回答"
-        survey1_priority = response.survey1_priority_item if response and response.survey1_priority_item else "未定"
         survey2_selected = response.survey2_selected_items if response and response.survey2_selected_items else "未回答"
 
         deals.append({
             "deal_id": link.deal_id,
             "company_name": link.company_name,
+            "department": link.department or "未設定",
+            "position": link.position or "未設定",
             "contact_name": link.contact_name,
             "sales_rep_name": link.sales_rep_name,
             "industry": link.industry,
             "revenue": link.revenue,
             "confirmed_date": confirmed_date,
             "survey1_selected_items": survey1_selected,
-            "survey1_priority_item": survey1_priority,
             "survey2_selected_items": survey2_selected,
         })
 
     return jsonify(deals)
+
 
 # 商談サジェスト生成エンドポイント
 @app.route('/admin/generate_suggestion', methods=['POST'])
