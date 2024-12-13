@@ -90,6 +90,8 @@ def register_deal():
     company_name = data.get('company_name')
     contact_name = data.get('contact_name')
     sales_rep_name = data.get('sales_rep_name')
+    department = data.get('department')
+    role_name = data.get('role_name')
     industry = data.get('industry')
     revenue = data.get('revenue')
     meeting_type = data.get('meeting_type')
