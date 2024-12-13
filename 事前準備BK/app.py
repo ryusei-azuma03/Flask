@@ -203,11 +203,15 @@ def manage_deals():
     for link in customer_links:
         response = CustomerResponse.query.filter_by(deal_id=link.deal_id).first()
         confirmed_date = response.selected_date_time if response and response.selected_date_time else "未定"
+        selected_date_time = response.selected_date_time if response and response.selected_date_time else "未回答"
         survey1_selected = response.survey1_selected_items if response and response.survey1_selected_items else "未回答"
+        survey1_priority_item = response.survey1_priority_item if response and response.survey1_priority_item else "未回答"
         survey2_selected = response.survey2_selected_items if response and response.survey2_selected_items else "未回答"
 
         deals.append({
+            "id" :link.id,
             "deal_id": link.deal_id,
+            "selected_date_time" : selected_date_time,
             "company_name": link.company_name,
             "department": link.department,
             "role_name": link.role_name,
@@ -217,6 +221,7 @@ def manage_deals():
             "revenue": link.revenue,
             "confirmed_date": confirmed_date,
             "survey1_selected_items": survey1_selected,
+            "survey1_priority_item" : survey1_priority_item,
             "survey2_selected_items": survey2_selected,
         })
 
