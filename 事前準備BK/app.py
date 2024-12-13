@@ -206,7 +206,7 @@ def get_survey_items():
     print(items)
     return jsonify(items)
 
-
+#顧客管理画面
 @app.route('/admin/manage_deals', methods=['GET'])
 def manage_deals():
     customer_links = CustomerLink.query.all()
@@ -220,8 +220,8 @@ def manage_deals():
         deals.append({
             "deal_id": link.deal_id,
             "company_name": link.company_name,
-            "department": link.department or "未設定",
-            "position": link.position or "未設定",
+            "department": link.department,
+            "role_name": link.role_name,
             "contact_name": link.contact_name,
             "sales_rep_name": link.sales_rep_name,
             "industry": link.industry,
