@@ -28,7 +28,6 @@ class MeetingCandidate(db.Model):
     date_time_start = db.Column(db.String(16), nullable=False)
     duration = db.Column(db.Integer, nullable=False)
 
-# データベースモデルの修正
 class CustomerLink(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     deal_id = db.Column(db.String(36), nullable=False, unique=True)
@@ -43,16 +42,6 @@ class CustomerLink(db.Model):
     link = db.Column(db.String(255), nullable=False, unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
-
-# マイグレーションを適用
-def upgrade_database():
-    with app.app_context():
-        # 部署名と役職を追加
-        if not hasattr(CustomerLink, 'department'):
-            db.session.execute('ALTER TABLE customer_link ADD COLUMN department TEXT;')
-        if not hasattr(CustomerLink, 'position'):
-            db.session.execute('ALTER TABLE customer_link ADD COLUMN position TEXT;')
-        db.session.commit()
 
 class SurveyItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
